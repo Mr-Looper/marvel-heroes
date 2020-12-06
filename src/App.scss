@@ -1,0 +1,14 @@
+.background-app{
+    background: url('./assets/background.png') no-repeat center fixed;     
+    background-size: cover;
+    height: 100vh;
+    position: fixed;
+    width: 100vw;
+    opacity: 0.1;
+}
+
+.navbar{
+    position: fixed !important;
+    width: 100% !important;
+    z-index: 999 !important;
+}

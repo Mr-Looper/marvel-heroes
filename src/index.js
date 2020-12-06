@@ -5,7 +5,10 @@ import App from './App';
 import store from './app/store';
 import { Provider } from 'react-redux';
 import * as serviceWorker from './serviceWorker';
+import { fetchHeroes } from './features/heroes/heroesSlice';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
+store.dispatch(fetchHeroes())
 ReactDOM.render(
   <React.StrictMode>
     <Provider store={store}>
