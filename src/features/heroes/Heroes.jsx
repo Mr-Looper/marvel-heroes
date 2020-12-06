@@ -1,58 +1,35 @@
 import React, { useState } from 'react'
 import { useDispatch } from 'react-redux'
-import { Card, Col, Row, Fade, Navbar, Nav, Form, FormControl, Button, Alert } from 'react-bootstrap';
+import { Card, Col, Row, Fade, Navbar, Nav, Form, Button, Alert } from 'react-bootstrap';
 import { useSelector } from 'react-redux';
 import moment from 'moment';
 
-import { selectHeroes, fetchHeroes, showHero } from './heroesSlice';
+import { selectHeroes, fetchHeroes, searchHero, resetOffset } from './heroesSlice';
 
 import './Heroes.scss';
 import { setModal } from '../modal/modalSlice';
 
-let lastMove = 0
 let currentSearch = ''
-export default function Heroes(){
+const Heroes = () => {
 	const dispatch = useDispatch()
 	const heroes = [...useSelector(selectHeroes)]
 	const loadingStatus = useSelector((state) => state.heroes.status)
 	const [searchCharacter, setSearchCharacter] = useState('')
-	const elementIsShown = (elem, border, delta = 0) => {
-		return (window.innerHeight - elem.getBoundingClientRect()[border]) >= delta
-	}
 
-	const verifyShowCardList = () => {
-		setTimeout(() => {
-			const cards = document.querySelectorAll('.card-character.fade:not(.show)')
-			if(cards && cards.length > 0){
-				cards.forEach(elem => {
-					if(elementIsShown(elem, 'top', 0)){
-						dispatch(showHero(parseInt(elem.id)))
-					}
-				})
-			}
-		}, 0)
-	}
 	const handleSearchCharacter = () => {
 		currentSearch = searchCharacter
-		dispatch(fetchHeroes('name', currentSearch))
+		if(currentSearch !== ''){
+			dispatch(searchHero('name', currentSearch))
+		}
+	}
+	const handleShowAll = () => {
+		dispatch(resetOffset())
+		setSearchCharacter('')
+		dispatch(fetchHeroes())
 	}
 	const handleShowModal = (hero) => {
 		dispatch(setModal(true, hero))
 	}
-	window.addEventListener('scroll', (e) => {
-		if(Date.now() - lastMove > 200) {
-			verifyShowCardList()
-			const cards = document.getElementsByClassName('card-character fade')
-			if(cards){
-				const lastCard = cards[cards.length - 1]
-				if(	elementIsShown(lastCard, 'top', -50) && loadingStatus === 'idle'){
-					lastMove = Date.now();
-					dispatch(fetchHeroes('name', currentSearch))
-				}
-			}
-		}
-	})
-
 
 	const renderedListItems = heroes.length === 0 && loadingStatus === 'idle'?
 		<Col>
@@ -62,7 +39,7 @@ export default function Heroes(){
 		</Col>
 	: heroes.map((hero) => {
 		return (
-			<Fade in={hero.show} key={hero.id} id={hero.index}>
+			<Fade in={true} key={hero.index} id={hero.index}>
 				<Col className="card-character" xs="12" sm="6" md="4" lg="3" xl="2" onClick={ handleShowModal.bind(this, hero) }>
 					<div className="cut-corners">
 						<Card bg="light" >
@@ -78,7 +55,6 @@ export default function Heroes(){
 			</Fade>
 		)
 	})
-	verifyShowCardList()
 	return (
 		<div className="marvel-heroes">
 			<Navbar bg="dark" variant="dark">
@@ -87,6 +63,7 @@ export default function Heroes(){
 				<div className="form-inline">
 					<Form.Control value={searchCharacter} onChange={(e) => setSearchCharacter(e.target.value) } type="text" placeholder="Search hero..." className="mr-sm-2" />
 					<Button variant="outline-danger" onClick={ handleSearchCharacter }>Search</Button>
+					{currentSearch !== ''? <Button className="show-all" variant="outline-info" onClick={ handleShowAll }>Show all</Button> : <></> }
 				</div>
 			</Navbar>
 			<Row className="container-heroes">
@@ -95,3 +72,5 @@ export default function Heroes(){
 		</div>
 	)
 }
+
+export default Heroes;

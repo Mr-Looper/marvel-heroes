@@ -5,6 +5,7 @@ const totalResults = 20
 const initialState = {
   status: 'idle',
   entities: {},
+  total: 0,
   offset: 0,
   search: {type: 'name', text: ''}
 }
@@ -23,42 +24,31 @@ const heroesSlice = createSlice({
     heroesLoaded(state, action) {
       const newEntities = {}
       let i = state.offset
-      action.payload.forEach((hero) => {
+      action.payload.results.forEach((hero) => {
         newEntities[i] = {...hero, show: false, index: i}
         i++
       })
       state.entities = newEntities
+      state.total = action.payload.total
       state.status = 'idle'
     },
     heroesLoadedExtra(state, action){
       const newEntities = {}
       let i = state.offset
-      action.payload.forEach((hero) => {
+      action.payload.results.forEach((hero) => {
         newEntities[i] = {...hero, show: false, index: i}
         i++
       })
       state.entities = { ...state.entities, ...newEntities}
+      state.total = action.payload.total
       state.status = 'idle'
     },
-    paramsAdded(state, action) {
-      state.offset = (action.payload.offset || 0) + totalResults
-      state.search = {
-        type: action.payload.typeSearch,
-        text: action.payload.search
-      }
+    offsetAdded(state, action) {
+      state.offset = (action.payload || 0)
     },
-    showHero: {
-      reducer(state, action) {
-        if(action.payload !== -1){
-          if(state.entities[action.payload]) state.entities[action.payload].show = true
-        }
-      },
-      prepare(id) {
-        return {
-          payload: id,
-        }
-      }
-    }
+    resetOffset(state, action) {
+      state.offset = 0
+    },
   },
 })
 
@@ -67,33 +57,43 @@ export const {
   heroesLoaded,
   heroesLoadedExtra,
   heroesLoading,
-  paramsAdded,
-  showHero
+  offsetAdded,
+  resetOffset
 } = heroesSlice.actions
 
 export default heroesSlice.reducer
 
 // Thunk function
 
-export const fetchHeroes = (typeSearch = 'name', search = '') => async (dispatch, getState) => {
+export const searchHero = (typeSearch = 'name', search = '') => async (dispatch, getState) => {
   dispatch(heroesLoading())
   let body= {
     ...marvel.params(),
-    offset: getState().heroes.offset
+    offset: 0
   }
   body[`${typeSearch}`] = search
-
-  if(getState().heroes.search.type !== typeSearch || getState().heroes.search.text !== search){
-    body.offset = 0
-  }
   let endpoint = 'characters'
   const response = await marvel.get(endpoint, body)
-  if(body.offset === 0){
-    dispatch(heroesLoaded(response.results))
-  }else{
-    dispatch(heroesLoadedExtra(response.results))
+  dispatch(heroesLoaded(response))
+  dispatch(offsetAdded(response.total))
+}
+
+export const fetchHeroes = () => async (dispatch, getState) => {
+  if(getState().heroes.total > getState().heroes.offset || getState().heroes.total + getState().heroes.offset === 0){
+    dispatch(heroesLoading())
+    let body= {
+      ...marvel.params(),
+      offset: getState().heroes.offset
+    }
+    let endpoint = 'characters'
+    const response = await marvel.get(endpoint, body)
+    if(body.offset === 0){
+      dispatch(heroesLoaded(response))
+    }else{
+      dispatch(heroesLoadedExtra(response))
+    }
+    dispatch(offsetAdded(response.offset + totalResults))
   }
-  dispatch(paramsAdded({offset: body.offset, typeSearch, search}))
 }
 
 const selectHeroEntities = (state) => state.heroes.entities
